@@ -9,14 +9,14 @@ class Product(BaseModel):
     in_stock: bool
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 
 # ---------- User Schemas ----------
 
 class UserCreate(BaseModel):
     username: str
-    password: str   # 🔥 plain password from frontend
+    password: str   # plain password from frontend
 
 
 class UserLogin(BaseModel):
@@ -29,4 +29,4 @@ class UserResponse(BaseModel):
     username: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
