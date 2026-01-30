@@ -1,8 +1,8 @@
-import { Navigate } from "react-router-dom";
+import React from "react";
 
 function ProtectedRoute({ children }) {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  return isLoggedIn ? children : <Navigate to="/login" replace />;
+  // Authorization removed — always allow access
+  return <>{children}</>;
 }
 
 export default ProtectedRoute;
