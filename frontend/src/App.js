@@ -3,9 +3,9 @@ import axios from "axios";
 import "./App.css";
 
 const api = axios.create({
-  baseURL: "http://fastapi-service:8000"
+  baseURL: "/"
 });
-
+api.get("/products/").then((res) => console.log(res.data));
 function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
