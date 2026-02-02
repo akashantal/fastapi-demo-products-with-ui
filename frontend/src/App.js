@@ -178,10 +178,17 @@ function App() {
   return (
     <div className="app-bg">
       <header className="topbar">
-        <h1>📦 Akash Website</h1>
-        <button onClick={() => setDarkMode((d) => !d)}>
-          {darkMode ? "☀️" : "🌙"}
-        </button>
+        <div className="brand">
+          <h1>📦 Akash Website</h1>
+        </div>
+        <div className="top-actions">
+          <button className="btn btn-checkout" onClick={handleCheckout}>
+            Checkout ({Object.keys(cart).length})
+          </button>
+          <button className="btn btn-toggle" onClick={() => setDarkMode((d) => !d)}>
+            {darkMode ? "☀️" : "🌙"}
+          </button>
+        </div>
       </header>
 
       <input

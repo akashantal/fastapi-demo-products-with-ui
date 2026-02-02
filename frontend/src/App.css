@@ -18,7 +18,29 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto
 .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; color: #fff; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-badge { font-size: 28px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.25)); }
-.top-actions { display: flex; gap: 10px; }
+.top-actions { display: flex; align-items: center; gap: 8px; }
+
+/* Ensure primary buttons are visible */
+.btn {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 14px;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg,#ff7a18,#af002d 70%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-checkout { background: linear-gradient(90deg,#10b981,#059669); }
+.btn-toggle { background: rgba(255,255,255,0.12); color: #fff; }
 
 /* Container */
 .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
