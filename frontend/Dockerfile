@@ -1,22 +1,21 @@
-# ---------- Build Stage ----------
-FROM node:18 AS build
+FROM node:18-slim
 
 WORKDIR /app
 
+# Copy package.json first (for caching)
 COPY package*.json ./
+
+# Install dependencies
 RUN npm install
 
+# Copy rest of code
 COPY . .
+
+# Build frontend
 RUN npm run build
 
-# ---------- Production Stage ----------
-FROM nginx:alpine
-
-COPY build/ /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-
+# Expose port
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
-# These are recently edited files. Do not suggest code that has been deleted.
+# Serve
+CMD ["npx", "serve", "-s", "build", "-l", "80"]

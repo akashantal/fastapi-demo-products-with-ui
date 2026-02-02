@@ -3,10 +3,9 @@ import axios from "axios";
 import "./App.css";
 
 const api = axios.create({
-  baseURL: "http://localhost:30007", // Update with your FastAPI backend URL
+  baseURL: "http://localhost:30007", // Update with your FastAPI backend URL (NodePort -> backend)
 });
 
-api.get("/products/").then((res) => console.log(res.data));
 function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,6 +24,9 @@ function App() {
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("darkMode") === "true"
   );
+
+  // New: cart state -> { [productId]: quantity }
+  const [cart, setCart] = useState({});
 
   // Dark mode
   useEffect(() => {
@@ -116,12 +118,61 @@ function App() {
   const handleDelete = async (id) => {
     if (!window.confirm("Delete product?")) return;
     await api.delete(`/products/${id}`);
+    // remove from cart if present
+    setCart((c) => {
+      const next = { ...c };
+      delete next[id];
+      return next;
+    });
     fetchProducts();
   };
 
   const handleEdit = (p) => {
     setForm({ ...p });
     setEditId(p.id);
+  };
+
+  // Cart helpers
+  const toggleSelect = (id) => {
+    setCart((c) => {
+      const next = { ...c };
+      if (next[id]) {
+        delete next[id];
+      } else {
+        next[id] = 1;
+      }
+      return next;
+    });
+  };
+
+  const setQty = (id, qty) => {
+    const q = Math.max(1, Number(qty) || 1);
+    setCart((c) => ({ ...c, [id]: q }));
+  };
+
+  const handleCheckout = async () => {
+    const items = Object.entries(cart).map(([product_id, quantity]) => ({
+      product_id: Number(product_id),
+      quantity: Number(quantity),
+    }));
+    if (!items.length) {
+      setError("Cart is empty");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+    setError("");
+    try {
+      const res = await api.post("/checkout", { items });
+      setMessage(`Order ${res.data.order_id} — total $${res.data.total.toFixed(2)}`);
+      // clear cart after successful checkout
+      setCart({});
+      fetchProducts();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Checkout failed");
+    }
+    setLoading(false);
   };
 
   return (
@@ -159,6 +210,10 @@ function App() {
       {message && <p className="success">{message}</p>}
       {error && <p className="error">{error}</p>}
 
+      <div style={{ padding: 12 }}>
+        <button className="btn" onClick={handleCheckout}>Checkout ({Object.keys(cart).length})</button>
+      </div>
+
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -166,26 +221,51 @@ function App() {
           <table className="product-table">
             <thead>
               <tr>
+                <th></th>
                 <th>ID</th>
                 <th>Name</th>
                 <th>Price</th>
                 <th>In Stock</th>
+                <th>Qty</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.id}</td>
-                  <td>{p.name}</td>
-                  <td>${Number(p.price).toFixed(2)}</td>
-                  <td>{p.in_stock ? "Yes" : "No"}</td>
-                  <td>
-                    <button className="btn btn-edit" onClick={() => handleEdit(p)}>Edit</button>
-                    <button className="btn btn-delete" onClick={() => handleDelete(p.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
+              {filteredProducts.map((p) => {
+                const selected = Boolean(cart[p.id]);
+                return (
+                  <tr key={p.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleSelect(p.id)}
+                      />
+                    </td>
+                    <td>{p.id}</td>
+                    <td>{p.name}</td>
+                    <td>${Number(p.price).toFixed(2)}</td>
+                    <td>{p.in_stock ? "Yes" : "No"}</td>
+                    <td>
+                      {selected ? (
+                        <input
+                          style={{ width: 60 }}
+                          type="number"
+                          min="1"
+                          value={cart[p.id]}
+                          onChange={(e) => setQty(p.id, e.target.value)}
+                        />
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>
+                      <button className="btn btn-edit" onClick={() => handleEdit(p)}>Edit</button>
+                      <button className="btn btn-delete" onClick={() => handleDelete(p.id)}>Delete</button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

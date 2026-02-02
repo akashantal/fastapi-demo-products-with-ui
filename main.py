@@ -5,19 +5,20 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from database_models import Base, Product as ProductDB
 # Changed import: alias Pydantic schema to avoid name collision with DB model
-from models import Product as ProductSchema
+from models import (
+    Product as ProductSchema,
+    CheckoutRequest,
+    CheckoutResponse,
+    CheckoutResponseItem,
+)
+import uuid
 
 app = FastAPI()
 
 # ------------------- CORS -------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:30008",
-        "http://127.0.0.1:30008",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -98,6 +99,37 @@ def update_product(product_id: int, updated_product: ProductSchema, db: Session 
     db.commit()
     db.refresh(product)
     return product
+
+# New: Checkout endpoint
+@app.post("/checkout", response_model=CheckoutResponse)
+def checkout(payload: CheckoutRequest, db: Session = Depends(get_db)):
+    items_out = []
+    total = 0.0
+    for it in payload.items:
+        product = db.query(ProductDB).filter(ProductDB.id == it.product_id).first()
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Product {it.product_id} not found")
+        if not product.in_stock:
+            raise HTTPException(status_code=400, detail=f"Product {it.product_id} is not in stock")
+        line_total = float(product.price) * int(it.quantity)
+        items_out.append(
+            CheckoutResponseItem(
+                product_id=product.id,
+                name=product.name,
+                unit_price=float(product.price),
+                quantity=int(it.quantity),
+                line_total=line_total,
+            )
+        )
+        total += line_total
+
+    order_id = str(uuid.uuid4())
+    return CheckoutResponse(
+        order_id=order_id,
+        items=items_out,
+        total=round(total, 2),
+        message="Checkout successful",
+    )
 
 # ------------------- OPTIONS handler -------------------
 @app.options("/{path:path}")
