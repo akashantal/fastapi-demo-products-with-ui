@@ -3,8 +3,9 @@ import axios from "axios";
 import "./App.css";
 
 const api = axios.create({
-  baseURL: "/"
+  baseURL: "http://localhost:30007", // Update with your FastAPI backend URL
 });
+
 api.get("/products/").then((res) => console.log(res.data));
 function App() {
   const [products, setProducts] = useState([]);

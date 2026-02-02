@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: fastapi-deployment
+  name: backend-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: fastapi
+      app: backend
   template:
     metadata:
       labels:
-        app: fastapi
+        app: backend
     spec:
       containers:
-        - name: fastapi-container
+        - name: backend-container
           image: fastapi-backend
           imagePullPolicy: Never
           ports:

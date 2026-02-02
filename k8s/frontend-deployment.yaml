@@ -16,5 +16,6 @@ spec:
         - name: frontend-container
           image: fastapi-frontend
           imagePullPolicy: Never
+          # nginx serves on port 80 inside the container
           ports:
             - containerPort: 80

@@ -1,19 +1,26 @@
+from typing import List
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 from database_models import Base, Product as ProductDB
-from models import Product, Product as ProductSchema
+# Changed import: alias Pydantic schema to avoid name collision with DB model
+from models import Product as ProductSchema
 
 app = FastAPI()
 
 # ------------------- CORS -------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:30008",
+        "http://127.0.0.1:30008",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
 # ------------------- Database -------------------
@@ -31,13 +38,14 @@ def get_db():
 def startup_event():
     db = SessionLocal()
     try:
-        # Initialize products
+        # Initialize products if DB is empty
         if db.query(ProductDB).count() == 0:
-            db.add_all([
-                ProductDB(id=1, name="Laptop", price=999.99, in_stock=True),
-                ProductDB(id=2, name="Smartphone", price=499.99, in_stock=False),
-                ProductDB(id=3, name="Tablet", price=299.99, in_stock=True),
-            ])
+            initial = [
+                ProductDB(name="Example Widget", price=9.99, in_stock=True),
+                ProductDB(name="Gizmo", price=19.99, in_stock=True),
+                ProductDB(name="Obsolete Thing", price=2.5, in_stock=False),
+            ]
+            db.add_all(initial)
         db.commit()
     finally:
         db.close()
@@ -52,31 +60,33 @@ def name():
     return {"name": "Akash"}
 
 # ------------------- Products (no auth) -------------------
-@app.get("/products/")
+@app.get("/products/", response_model=List[ProductSchema])
 def get_products(db: Session = Depends(get_db)):
     return db.query(ProductDB).all()
 
-@app.get("/products/{product_id}")
+@app.get("/products/{product_id}", response_model=ProductSchema)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     product = db.query(ProductDB).filter(ProductDB.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
 
-@app.post("/products/")
-def add_product(product: Product, db: Session = Depends(get_db)):
-    db.add(ProductDB(**product.dict()))
+@app.post("/products/", response_model=ProductSchema)
+def add_product(product: ProductSchema, db: Session = Depends(get_db)):
+    db_obj = ProductDB(**product.dict())
+    db.add(db_obj)
     db.commit()
-    return product
+    db.refresh(db_obj)
+    return db_obj
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     product = db.query(ProductDB).filter(ProductDB.id == product_id).first()
-    if product:
-        db.delete(product)
-        db.commit()
-        return {"message": "Product deleted successfully."}
-    return {"message": "Product not found."}
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    db.delete(product)
+    db.commit()
+    return {"message": "Product deleted."}
 
 @app.put("/products/{product_id}", response_model=ProductSchema)
 def update_product(product_id: int, updated_product: ProductSchema, db: Session = Depends(get_db)):
